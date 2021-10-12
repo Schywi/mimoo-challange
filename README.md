@@ -1,7 +1,7 @@
 # Como instalar as dependencias
 Caso nao tenha o serverless framework instalado: 
 Execute : ``npm install -g serverless``
-Depois execute : ``npm install `` para executar o resto das dependencias
+Depois execute : ``npm install `` para instalar o resto das dependencias
 
 
 # Autenticação 
