@@ -1,0 +1,184 @@
+openapi: 3.0.0
+info:
+  title: Desafio Mimoo
+  version: 0.0.1
+
+servers:
+  - url: https://riop6hj5k7.execute-api.us-east-1.amazonaws.com/dev/
+    description: Main Test Server
+
+paths:
+    /tools:
+        get:
+            summary: Return a list of all tools on the DynamoDB
+            parameters:
+                ref: '#/components/schemas/Headers' 
+            responses:
+                '200':
+                    description: A JSON array of all tools registered
+                    content:
+                        application/json: 
+                            schema:
+                                type: array
+                                items:
+                                    ref: '#/components/schemas/Tool' 
+                '400':
+                    description: Failed to get all tools list
+                    content:
+                        application/json: 
+                            schema:
+                                type: object
+                                items:
+                                    type: string
+        post:
+            summary:  Add a new tool object to dynamoDB
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                             ref: '#/components/schemas/Tool' 
+            parameters:
+                ref: '#/components/schemas/Headers' 
+            responses:
+                '200':
+                    description: A JSON object with the data added and the ID created
+                    content:
+                        application/json: 
+                            schema:
+                                  $ref: '#/components/schemas/Tool' 
+                '400':
+                    description: Failed to create tool object
+                    content:
+                        application/json: 
+                            schema:
+                                type: object
+                                items:
+                                    type: string
+    
+    /tools/{ID}:
+        get:
+            summary: Get tool data by ID
+            parameters:
+                ref: '#/components/schemas/Headers' 
+            responses:
+                '200':
+                    description: JSON with the tool data
+                    content:
+                        application/json: 
+                            schema:
+                                ref: '#/components/schemas/Tool' 
+                '400':
+                    description: JSON with message "Failed to get user by ID"
+                    content:
+                        application/json: 
+                            schema:
+                                type: object
+                                items:
+                                    type: string
+        put:
+            summary: Update tools tag array from a specific ID
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                             ref: '#/components/schemas/Tool' 
+            parameters:
+                - in: header
+                  name: X-Amz-Security-Token
+                  schema: 
+                    type: string
+                    format: uuid
+                  required: true
+            responses:
+                '200':
+                    description: Return an empty object  
+                    content:
+                        application/json: 
+                            schema:
+                                type: object                   
+                '400':
+                    description: Failed to update tool tag
+                    content:
+                        application/json: 
+                            schema:
+                                type: object
+                                items:
+                                    type: string
+        delete:
+            summary: Update tools tag array from a specific ID
+            parameters:
+                 ref: '#/components/schemas/Headers' 
+            responses:
+                '200':
+                    description: An empty object
+                    content:
+                        application/json: 
+                            schema:
+                                type: object                  
+                '400':
+                    description: Error object with error message
+                    content:
+                        application/json: 
+                            schema:
+                                type: object
+                                items:
+                                    type: string
+    
+     /tools-tag/{tagName}:
+        get:
+            summary: List all tools with a provided tag name
+            parameters:
+                 ref: '#/components/schemas/Headers' 
+            responses:
+                '200':
+                    description: Return an JSON array with the filtered data
+                    content:
+                        application/json: 
+                            schema:
+                                type: array
+                                items:
+                                    ref: '#/components/schemas/Tool' 
+                '400':
+                    description:  Return an empty array
+                    content:
+                        application/json: 
+                            schema:
+                                type: array                               
+       
+components:
+    schemas:
+        Tool:
+            type: object
+            properties:
+                 id:
+                    type: string
+                    example: 14c1409c-e6c9-47e4-8a66-727bce248b15
+                title:
+                    type: string
+                    example: fastify
+                link:
+                    type: string
+                    example: https://www.fastify.io/
+                description:
+                    type: string
+                    example: Extremely fast and simple, low-overhead web framework for NodeJS. Supports HTTP2.
+                tags:
+                    type: array
+                    example: ['science', 'finance']
+            # All properties are required
+            required:
+                - id
+                - title
+                - link
+                - description
+                - tags
+        Headers:
+            - in: header
+                  name: X-Amz-Security-Token
+                  schema: 
+                    type: string
+                    format: uuid
+                  required: true
+                 

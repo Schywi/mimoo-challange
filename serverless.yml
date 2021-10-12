@@ -1,0 +1,181 @@
+ 
+service: serverlessnode
+ 
+frameworkVersion: '2'
+# against bots use tthotle  for very fast reqeust rate limit only allow 5 per second or mora than 5 with burst but after go down to 5
+# its possible to set different usagePlan one for premiun and other for free resources
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: 20201221
+  environment:
+      tableName: ${self:custom.tableName}
+      tokenTableName: ${self:custom.tokenTableName}
+  iamRoleStatements:
+      - Effect: Allow
+        Action:
+            - dynamodb:*
+        Resource: '*'
+  apiKeys:
+       - free:
+            - myFreeApiKey
+       - paid:
+            - myPaidApiKey 
+  usagePlan:
+    - free:
+        quota:
+            limit: 20
+            period: MONTH
+        throttle:
+            rateLimite: 5
+            burstLimit: 20
+    - paid:
+        quota:
+            limit: 2000
+            period: MONTH
+        throttle:
+            rateLimite: 50
+            burstLimit: 200
+        
+ 
+plugins:
+    - serverless-webpack
+    - serverless-offline
+    - serverless-dynamodb-local
+
+package:
+    individually: true
+
+custom:
+    tableName: tools-table
+    tokenTableName: token-table-name
+    dynamodb:
+        stages:
+            - dev
+        start:
+            port: 8000
+            inMemory: true
+            migrate: true
+        migration:
+            dir: offline/migrations
+
+
+functions:
+  authoriserAnyToken:
+      handler: lambdas/authorisers/anyToken.handler
+
+  getSpecificByIDTool:
+      handler: lambdas/endpoints/getSpecificByIDTool.handler
+      events:
+          - http:
+                path: tools/{ID}
+                method: GET
+                cors: true
+                authorizer:
+                    name: authoriserAnyToken
+                    type: request
+                    identitySource: method.request.header.X-Amz-Security-Token
+
+  createTools:
+      handler: lambdas/endpoints/createTools.handler
+      events:
+          - http:
+                path: tools/
+                method: POST
+                cors: true
+                authorizer:
+                    name: authoriserAnyToken
+                    type: request
+                    identitySource: method.request.header.X-Amz-Security-Token
+  updateToolTags:
+      handler: lambdas/endpoints/updateToolTags.handler
+      events:
+          - http:
+                path: tools/{ID}
+                method: PUT
+                cors: true
+                authorizer:
+                    name: authoriserAnyToken
+                    type: request
+                    identitySource: method.request.header.X-Amz-Security-Token
+  getToolsByTag:
+      handler: lambdas/endpoints/getToolsByTag.handler
+      events:
+          - http:
+                path: tools-tag/{tagName}
+                method: GET
+                cors: true
+                authorizer:
+                    name: authoriserAnyToken
+                    type: request
+                    identitySource: method.request.header.X-Amz-Security-Token
+  deleteTools:
+      handler: lambdas/endpoints/deleteTools.handler
+      events:
+          - http:
+                path: tools/{ID}
+                method: DELETE
+                cors: true
+                authorizer:
+                    name: authoriserAnyToken
+                    type: request
+                    identitySource: method.request.header.X-Amz-Security-Token
+  listAllTools:
+      handler: lambdas/endpoints/listAllTools.handler
+      events:
+          - http:
+                path: tools/
+                method: GET
+                cors: true
+                authorizer:
+                    name: authoriserAnyToken
+                    type: request
+                    identitySource: method.request.header.X-Amz-Security-Token
+                 
+
+
+resources:
+    Resources:
+        MyDynamoDbTable:
+            Type: AWS::DynamoDB::Table
+            Properties:
+                TableName: ${self:custom.tableName}
+                AttributeDefinitions:
+                    - AttributeName: ID
+                      AttributeType: S
+                KeySchema:
+                    - AttributeName: ID
+                      KeyType: HASH
+                BillingMode: PAY_PER_REQUEST
+            
+        CognitoUserPool:
+            Type: AWS::Cognito::UserPool
+            Properties:
+                UserPoolName: ${self:provider.stage}-user-pool
+                UsernameAttributes:
+                    - email
+                AutoVerifiedAttributes:
+                    - email
+        CognitoUserPoolClient:
+            Type: AWS::Cognito::UserPoolClient
+            Properties:
+                ClientName: ${self:provider.stage}-user-pool-client
+                UserPoolId:
+                    Ref: CognitoUserPool
+                ExplicitAuthFlows:
+                    - ADMIN_NO_SRP_AUTH
+                GenerateSecret: false
+        TokenTable:
+            Type: AWS::DynamoDB::Table
+            Properties:
+                 TableName: ${self:custom.tokenTableName}
+                 AttributeDefinitions:
+                    - AttributeName: ID
+                      AttributeType: S
+                      
+                 KeySchema:
+                    - AttributeName: ID
+                      KeyType: HASH
+                 BillingMode: PAY_PER_REQUEST
+
+                
